@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
@@ -34,9 +33,8 @@ func NewStore(path string) (*Store, error) {
 // Remember stores a text entry in the index under the given ID.
 func (s *Store) Remember(id, text string) error {
 	doc := MemoryDoc{
-		ID:        id,
-		Text:      text,
-		CreatedAt: time.Now(),
+		ID:   id,
+		Text: text,
 	}
 	if err := s.index.Index(id, doc); err != nil {
 		return fmt.Errorf("index document: %w", err)
@@ -52,8 +50,7 @@ func (s *Store) Search(q string, limit int) ([]SearchHit, uint64, error) {
 
 	qry := query.NewQueryStringQuery(q)
 	searchRequest := bleve.NewSearchRequestOptions(qry, limit, 0, false)
-	searchRequest.Fields = []string{"text", "created_at"}
-	searchRequest.SortBy([]string{"-score"})
+	searchRequest.Fields = []string{"text"}
 
 	result, err := s.index.Search(searchRequest)
 	if err != nil {
@@ -92,7 +89,6 @@ func (s *Store) DocCount() (uint64, error) {
 }
 
 // buildIndexMapping creates a Bleve index mapping for MemoryDoc.
-// The "text" field is analyzed for full-text search; "id" is a keyword.
 func buildIndexMapping() mapping.IndexMapping {
 	m := bleve.NewIndexMapping()
 
@@ -103,14 +99,10 @@ func buildIndexMapping() mapping.IndexMapping {
 	idFieldMapping.Analyzer = "keyword"
 	docMapping.AddFieldMappingsAt("id", idFieldMapping)
 
-	// Text field — analyzed with standard analyzer (stemming, stop-words)
+	// Text field — analyzed for full-text search
 	textFieldMapping := bleve.NewTextFieldMapping()
 	textFieldMapping.Analyzer = "en"
 	docMapping.AddFieldMappingsAt("text", textFieldMapping)
-
-	// CreatedAt field — datetime
-	timeFieldMapping := bleve.NewDateTimeFieldMapping()
-	docMapping.AddFieldMappingsAt("created_at", timeFieldMapping)
 
 	m.AddDocumentMapping("memory", docMapping)
 	m.DefaultAnalyzer = "en"
