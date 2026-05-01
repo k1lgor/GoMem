@@ -1,0 +1,1 @@
+{"type":"config","name":"GoMem query latency optimization","metricName":"P50_ms","metricUnit":"ms","bestDirection":"lower"}
