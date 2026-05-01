@@ -1,0 +1,11 @@
+{
+  "gomem-project": {
+    "description": "Room for gomem-project knowledge",
+    "items": {
+      "speed-target": "Primary success criterion: ≤50ms query latency for 10k stored entries. Measured via benchmark."
+    }
+  }
+}ming, stop-word removal."
+    }
+  }
+}
