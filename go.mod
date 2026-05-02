@@ -1,4 +1,4 @@
-module github.com/plamen9/gomem
+module github.com/k1lgor/gomem
 
 go 1.25.1
 

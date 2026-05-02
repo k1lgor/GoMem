@@ -1,6 +1,4 @@
-package main
-
-
+package gomem
 
 // MemoryDoc is the document stored in the Bleve index.
 type MemoryDoc struct {

@@ -1,7 +1,8 @@
-package main
+package gomem
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
@@ -15,6 +16,9 @@ type Store struct {
 
 // NewStore opens an existing Bleve index at path or creates a new one.
 func NewStore(path string) (*Store, error) {
+	// Ensure data directory is only accessible by the owner
+	os.MkdirAll(path, 0700)
+
 	index, err := bleve.Open(path)
 	if err != nil {
 		// If the index doesn't exist (path missing) or the directory is empty
@@ -48,7 +52,17 @@ func (s *Store) Search(q string, limit int) ([]SearchHit, uint64, error) {
 		limit = 10
 	}
 
-	qry := query.NewQueryStringQuery(q)
+	var qry query.Query
+	if q == "*" {
+		// MatchAllQuery for listing all documents
+		qry = query.NewMatchAllQuery()
+	} else {
+		// MatchQuery (simpler, faster than QueryStringQuery).
+		// The query text is analyzed with the field's analyzer for token matching.
+		mq := query.NewMatchQuery(q)
+		mq.SetField("text")
+		qry = mq
+	}
 	searchRequest := bleve.NewSearchRequestOptions(qry, limit, 0, false)
 	searchRequest.Fields = []string{"text"}
 
@@ -69,12 +83,23 @@ func (s *Store) Search(q string, limit int) ([]SearchHit, uint64, error) {
 }
 
 // Delete removes a document from the index by ID.
+// Returns an error if the document doesn't exist.
 func (s *Store) Delete(id string) error {
+	// Search for the document first to verify it exists.
+	// Bleve's Delete doesn't error on missing docs.
+	q := query.NewDocIDQuery([]string{id})
+	search := bleve.NewSearchRequestOptions(q, 1, 0, false)
+	result, err := s.index.Search(search)
+	if err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+	if result.Total == 0 {
+		return fmt.Errorf("document %q not found", id)
+	}
+
 	if err := s.index.Delete(id); err != nil {
 		return fmt.Errorf("delete document: %w", err)
 	}
-	// Bleve's Delete doesn't error on missing doc, but we can check existence.
-	// For now, return nil; the handler layer can verify if needed.
 	return nil
 }
 
@@ -99,13 +124,13 @@ func buildIndexMapping() mapping.IndexMapping {
 	idFieldMapping.Analyzer = "keyword"
 	docMapping.AddFieldMappingsAt("id", idFieldMapping)
 
-	// Text field — analyzed for full-text search
+	// Text field — analyzed for full-text search (no stemming = faster)
 	textFieldMapping := bleve.NewTextFieldMapping()
-	textFieldMapping.Analyzer = "en"
+	textFieldMapping.Analyzer = "standard"
 	docMapping.AddFieldMappingsAt("text", textFieldMapping)
 
 	m.AddDocumentMapping("memory", docMapping)
-	m.DefaultAnalyzer = "en"
+	m.DefaultAnalyzer = "standard"
 
 	return m
 }

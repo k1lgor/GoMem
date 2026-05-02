@@ -1,2 +1,0 @@
-{"type":"config","name":"GoMem query latency optimization","metricName":"P50_ms","metricUnit":"ms","bestDirection":"lower"}
-{"run":1,"commit":"ea3e9e3","metric":5.211,"metrics":{"P95_ms":6.107,"P99_ms":6.168},"status":"keep","description":"BASELINE: initial CLI tool, Bleve v2, \"en\" analyzer, created_at field stored","timestamp":1777654175697,"segment":0,"confidence":null}
